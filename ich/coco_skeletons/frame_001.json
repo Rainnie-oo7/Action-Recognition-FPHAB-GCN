@@ -1,0 +1,98 @@
+{
+    "info": {
+        "year": 2024,
+        "version": "1.0",
+        "description": "Bewegung: Hand heben",
+        "contributor": "Automatisch generiert",
+        "date_created": "2024-12-24"
+    },
+    "images": [
+        {
+            "id": 1,
+            "width": 640,
+            "height": 480,
+            "file_name": "frame_001.jpg"
+        }
+    ],
+    "annotations": [
+        {
+            "id": 1,
+            "image_id": 1,
+            "category_id": 1,
+            "keypoints": [
+                298.4521697146736,
+                746.5766975728137,
+                2,
+                303.17901148475437,
+                697.7333548888067,
+                2,
+                252.9756608204012,
+                602.3962478336791,
+                2,
+                353.64703700305006,
+                598.9877919187379,
+                2,
+                249.62392836768686,
+                496.4083800912389,
+                2,
+                352.115937518421,
+                500.59188081620727,
+                2,
+                254.3733357312783,
+                404.4098374147461,
+                2,
+                354.5798969192622,
+                399.461211927935,
+                2
+            ],
+            "num_keypoints": 8
+        }
+    ],
+    "categories": [
+        {
+            "id": 1,
+            "name": "person",
+            "supercategory": "human",
+            "keypoints": [
+                "head",
+                "neck",
+                "left_shoulder",
+                "right_shoulder",
+                "left_elbow",
+                "right_elbow",
+                "left_hand",
+                "right_hand"
+            ],
+            "skeleton": [
+                [
+                    1,
+                    2
+                ],
+                [
+                    2,
+                    3
+                ],
+                [
+                    2,
+                    4
+                ],
+                [
+                    3,
+                    5
+                ],
+                [
+                    4,
+                    6
+                ],
+                [
+                    5,
+                    7
+                ],
+                [
+                    6,
+                    8
+                ]
+            ]
+        }
+    ]
+}

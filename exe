@@ -1,0 +1,12 @@
+C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\mydataset.py:22: UserWarning: loadtxt: input contained no data: "C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1\Subject_2\close_milk\4\skeleton.txt"
+  skeleton_vals = np.loadtxt(skeleton_file)
+C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\mydataset.py:22: UserWarning: loadtxt: input contained no data: "C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1\Subject_2\put_tea_bag\2\skeleton.txt"
+  skeleton_vals = np.loadtxt(skeleton_file)
+C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\mydataset.py:22: UserWarning: loadtxt: input contained no data: "C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1\Subject_4\flip_sponge\2\skeleton.txt"
+  skeleton_vals = np.loadtxt(skeleton_file)
+
+Kann man also löäschen
+
+
+
+
