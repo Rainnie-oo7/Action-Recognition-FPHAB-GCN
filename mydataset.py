@@ -33,16 +33,3 @@ def load_all_skeletons(data_root):
 
     return skeleton_data
 
-
-data_root = r"C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1"
-skeleton_data = load_all_skeletons(data_root)
-
-# Ausgabe: Anzahl der geladenen Datensätze
-print(f"Es wurden {len(skeleton_data)} Skelettdatensätze geladen.") #1178
-
-# Beispiel: Anzeige eines Labels und der ersten paar Skelettwerte
-# print(skeleton_data[0]['label'])
-# print(skeleton_data[0]['skeleton'][:5])
-c=skeleton_data[0]['skeleton'][:,1:]
-print(c)
-print("ABC")

@@ -3,11 +3,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
+import mydataset
 
 # Beispiel: 21 Gelenke mit 3 Features (XYZ)
 num_joints = 21
-node_features = torch.rand(num_joints, 3)  # XYZ-Koordinaten    tensor(21, 3)           # 21 mal (x, y, z), ...
+data_root = r"C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1"
+skeleton_data = mydataset.load_all_skeletons(data_root)
 
+# Ausgabe: Anzahl der geladenen Datensätze
+print(f"Es wurden {len(skeleton_data)} Skelettdatensätze geladen.") #1178
+
+# Beispiel: Anzeige eines Labels und der ersten paar Skelettwerte
+# print(skeleton_data[0]['label'])
+# print(skeleton_data[0]['skeleton'][:5])
+c=skeleton_data[0]['skeleton'][:,1:]
+# node_features = # XYZ-Koordinaten    tensor(21, 3)     tensor([[x, y, z], [x, y, z] .. 21 mal [x, y, z]])
+# also wird nur ein Frame ans Model uebergeben!!!
 # Adjazenzmatrix für 21 Handgelenke (Indexierung korrigiert)
 edge_index = torch.tensor([
     (0, 1), (1, 2), (2, 3), (3, 4),  # Daumen

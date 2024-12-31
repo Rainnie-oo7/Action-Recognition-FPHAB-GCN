@@ -184,6 +184,6 @@ if __name__ == '__main__':
                 [skel_camcoords[:, proj_1], skel_camcoords[:, proj_2]],
                 axis=1),
             joint_idxs=False)
-    print("DU HURENSOOOOOOOHN DEINE MUTTER und KIZ DEM THROOON")
+    print("asdaeht")
     plt.show()
 
