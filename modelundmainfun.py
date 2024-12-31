@@ -3,24 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
-import mydataset
+import load_all_skeletons
+from Mydataset import SkeletonDataset
 
 # Beispiel: 21 Gelenke mit 3 Features (XYZ)
 num_joints = 21
-data_root = r"C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\First-PersonHandActionBenchmarkF-PHAB\Hand_pose_annotation_v1"
-skeleton_data = mydataset.load_all_skeletons(data_root)
 
-# Ausgabe: Anzahl der geladenen Datensätze
-print(f"Es wurden {len(skeleton_data)} Skelettdatensätze geladen.") #1178
+node_features, _ = dataset
 
-# Beispiel: Anzeige eines Labels und der ersten paar Skelettwerte
-# print(skeleton_data[0]['label'])
-# print(skeleton_data[0]['skeleton'][:5])
-c=skeleton_data[0]['skeleton'][:,1:]
-# node_features = # XYZ-Koordinaten    tensor(21, 3)     tensor([[x, y, z], [x, y, z] .. 21 mal [x, y, z]])
-# also wird nur ein Frame ans Model uebergeben!!!
-# Adjazenzmatrix für 21 Handgelenke (Indexierung korrigiert)
-edge_index = torch.tensor([
+edge_index = torch.tensor([         # Adjazenzmatrix für 21 Handgelenke (Indexierung korrigiert)
     (0, 1), (1, 2), (2, 3), (3, 4),  # Daumen
     (0, 5), (5, 6), (6, 7), (7, 8),  # Zeigefinger
     (0, 9), (9, 10), (10, 11), (11, 12),  # Mittelfinger
@@ -60,3 +51,19 @@ for epoch in range(200):
     loss.backward()
     optimizer.step()
     print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
+# node_features = # XYZ-Koordinaten    tensor(21, 3)     tensor([[x, y, z], [x, y, z] .. 21 mal [x, y, z]])
+# also wird nur ein Frame ans Model uebergeben!!!
+#__________________________________________________mit DataLoader__________________________:_____________________
+# DataLoader erstellen
+batch_size = 32
+dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# Training mit DataLoader
+for epoch in range(num_epochs):
+    for data, label in dataloader:
+        # Daten und Labels an Modell übergeben
+        outputs = model(data)
+        loss = loss_fn(outputs, label)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
