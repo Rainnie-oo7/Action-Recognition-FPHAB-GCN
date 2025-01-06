@@ -41,6 +41,20 @@ class GCN(nn.Module):
 # Modell initialisieren
 model = GCN(input_dim=3, hidden_dim=32, output_dim=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+# siehe 2_PoseEstimation.libre office
+def combined_loss(pred_keypoints, pred_labels, true_keypoints, true_labels, num_keypoints, num_classes):
+    # MSE Loss für Keypoints (XYZ-Koordinaten)
+    keypoint_loss = nn.MSELoss()(pred_keypoints, true_keypoints)
+    
+    # Cross-Entropy Loss für die Labels (Klassifikation)
+    label_loss = 0
+    for i in range(num_keypoints):
+        label_loss += nn.CrossEntropyLoss()(pred_labels[:, i*num_classes:(i+1)*num_classes], true_labels[:, i])
+
+    # Gesamter Verlust: Kombination von Keypoint- und Label-Verlust
+    total_loss = keypoint_loss + label_loss
+    return total_loss
+#______________________________________________________
 
 # Training-Loop (Dummy-Labels für Pose)
 labels = torch.rand(num_joints, 3)  # Zielpose
@@ -67,3 +81,66 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        
+#__________________________________________________________
+def train(model, train_loader, criterion, optimizer, num_epochs=10):
+    model.train()
+    for epoch in range(num_epochs):
+        running_loss = 0.0
+        for images, keypoints in train_loader:
+            # Bilder und Keypoints auf das richtige Device verschieben (z.B. CUDA, wenn verfügbar)
+            images = images.cuda()
+            keypoints = keypoints.cuda()
+
+            # Optimierungsschritt
+            optimizer.zero_grad()
+
+            # Vorwärtsdurchlauf
+            outputs = model(images)
+
+            # Verlust berechnen
+            loss = criterion(outputs, keypoints)
+            loss.backward()
+
+            # Optimierungsschritt
+            optimizer.step()
+
+            running_loss += loss.item()
+
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader)}")
+
+################################################################
+# Hyperparameter
+image_paths = [...]  # Liste der Bildpfade
+keypoint_annotations = [...]  # Liste der XYZ-Koordinaten (z.B. für 17 Keypoints = 17 * 3 = 51 Werte)
+
+# Bildtransformation (z.B. Normalisierung)
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+
+# Dataset und DataLoader
+dataset = KeypointDataset(image_paths, keypoint_annotations, transform=transform)
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+# Modell initialisieren
+num_keypoints = 17  # Anzahl der Keypoints, z.B. 17 für den menschlichen Körper
+model = KeypointDetectionModel(num_keypoints).cuda()
+
+# Optimizer und Verlustfunktion
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+criterion = nn.MSELoss()
+
+# Training starten
+train(model, train_loader, criterion, optimizer)
+#############################Vorhersage###################################
+def predict(model, image):
+    model.eval()
+    with torch.no_grad():
+        image = transform(image).unsqueeze(0).cuda()  # Batch-Dimension hinzufügen
+        outputs = model(image)
+        return outputs.cpu().numpy().flatten()  # Gibt die XYZ-Koordinaten der Keypoints zurück
+
