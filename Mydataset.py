@@ -6,10 +6,12 @@ import numpy as np
 import sys
 import os
 from torch.utils.data import Dataset, DataLoader
+import load_clean
+import load_all_skeletons
 import process_skeleton as sk
 from configs import config_seamer as cf
 
-sys.path.append('/home/boris.grillborzer/PycharmProjects/PoseEstimationIRD')
+sys.path.append('/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB')
 data, _, _ = sk.process_files(cf.path_dataset)
 path_dataset_depthimages = cf.path_dataset_depthimages
 
@@ -57,7 +59,7 @@ def mkthreesome():
 
     for action, spatvals in skeleton_data.items():
 
-        # Wähle drei Werte für jedes der 21 Labels
+        # Wähle drei Werte für jedes der 21-3er Labeltripel
         label_values = {}
         for i, label in enumerate(labels):
             if i < 64:

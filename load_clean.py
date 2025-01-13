@@ -94,6 +94,10 @@ def _draw2dseg(ax, annot, idx1, idx2, c='r', alpha=1):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    #python3 load_clean.py --root "/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB/First-PersonHandActionBenchmarkF-PHAB" --subject 'Subject_2' --action_name 'open_juice_bottle'
+                            --seq_idx '1'
+                            --frame_idx '0'
+                            --obj 'juice_bottle'
     parser.add_argument('--root', required=True, help='Path to dataset install')
     parser.add_argument('--subject', required=True, default='Subject_1')
     parser.add_argument('--action_name', required=True, default='open_liquid_soap')
