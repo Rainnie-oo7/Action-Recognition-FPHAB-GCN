@@ -8,5 +8,8 @@ C:\Users\Boris Grillborzer\PycharmProjects\PoseEstimation\mydataset.py:22: UserW
 Kann man also löäschen
 
 
+--root "/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB/First-PersonHandActionBenchmarkF-PHAB" --subject Subject_2 --action_name open_juice_bottle --seq_idx 1 --frame_idx 0 --obj juice_bottle
 
+/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB/First-PersonHandActionBenchmarkF-PHAB/Object_6D_pose_annotation_v1_1/Subject_2/open_juice_bottle/1
+/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB/First-PersonHandActionBenchmarkF-PHAB/Object_6D_pose_annotation_v1/Subject_2/open_juice_bottle/1/object_pose.txt'
 
