@@ -3,39 +3,40 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mkl_random.mklrand import geometric
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GraphConv
 from torch.nn import Linear
-import torchvision.transforms as transforms
-from torch_geometric.data import Data
+from torch_geometric.transforms import NormalizeFeatures
+from torch_geometric.data import Data, Batch
 
 from Mydataset import SkeletonDataset
 
 num_joints = 21
 
-# Bildtransformation (z.B. Normalisierung)
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+# transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
+#  File "/home/boris.grillborzer/miniconda3/envs/gggten/lib/python3.10/site-packages/torch_geometric/transforms/normalize_features.py", line 24, in forward
+#     for store in data.stores:
+# AttributeError: 'Tensor' object has no attribute 'stores'
 batch_size = 32
 # Dataset und DataLoader
 path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
-dataset = SkeletonDataset(path, transform=transform)
-train_dataset = node_features, edge_index, _ =  dataset[:900]   #1178
-test_dataset = node_featurestest, edge_indextest, _ = dataset[278:]
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+dataset = SkeletonDataset(path, transform=None)
+
+train_size = int(0.8 * len(dataset))
+test_size = len(dataset) - train_size
+
+train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+node_features, edge_index, y = train_dataset[0]
+node_featurestest, edge_indextest, ytest = test_dataset[0]
+
+train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=Batch.from_data_list)
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=Batch.from_data_list)
 
 data = Data(x=node_features, edge_index=edge_index)
 datatest = Data(x=node_featurestest, edge_index=edge_indextest)
 
-# Transponieren für die Form [2, num_edges]
-edge_index = edge_index.t()
 
 # GCN-Modell
 class GCN(torch.nn.Module):
