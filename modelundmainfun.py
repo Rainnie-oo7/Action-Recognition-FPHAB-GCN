@@ -9,7 +9,7 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GraphConv
 from torch.nn import Linear
 import torchvision.transforms as transforms
-import torch_geometric.nn import Data
+from torch_geometric.data import Data
 
 from Mydataset import SkeletonDataset
 
@@ -26,11 +26,13 @@ batch_size = 32
 # Dataset und DataLoader
 path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
 dataset = SkeletonDataset(path, transform=transform)
-train_dataset = node_features, edge_index, _ =  dataset[:150]
-test_dataset = dataset[150:]
+train_dataset = node_features, edge_index, _ =  dataset[:900]   #1178
+test_dataset = node_featurestest, edge_indextest, _ = dataset[278:]
 train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
+data = Data(x=node_features, edge_index=edge_index)
+datatest = Data(x=node_featurestest, edge_index=edge_indextest)
 
 # Transponieren für die Form [2, num_edges]
 edge_index = edge_index.t()

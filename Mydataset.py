@@ -9,20 +9,20 @@ import cv2
 from torch.utils.data import Dataset, DataLoader
 from load_all_skeletons import load_all_skeletons, load_data_from_skeleton_path
 
+
 class SkeletonDataset(Dataset):
     def __init__(self, path, transform=None):
         # Lädt pro Action die Skelett-Pfade
         self.skeleton_paths, self.actions = load_all_skeletons(path)
+        # Lädt pro Action die Skelette / Data
+        self.skeleton_data = load_data_from_skeleton_path(self.skeleton_paths)
         self.labels = ["Wrist, TMCP, IMCP, MMCP, RMCP, PMCP, TPIP, TDIP, TTIP, IPIP, IDIP, ITIP, MPIP, MDIP, MTIP, RPIP, RDIP, RTIP, PPIP, PDIP, PTIP"]  # 21 Stück
-        self.actions =
         self.transform = transform
 
     def __len__(self):
-        return len(self.image_paths)
+        return len(self.skeleton_data['charge_cell_phone'])
 
     def __getitem__(self, idx):
-        image = cv2.imread(self.image_paths[idx])
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Von BGR zu RGB konvertieren
 
         edge_index = torch.tensor([  # Adjazenzmatrix für 21 Handgelenke (Indexierung korrigiert)
             (0, 1), (1, 2), (2, 3), (3, 4),  # Daumen
@@ -32,14 +32,21 @@ class SkeletonDataset(Dataset):
             (0, 17), (17, 18), (18, 19), (19, 20)  # Kleiner Finger
         ], dtype=torch.long)
 
-        y = self.actions
-        # Lädt pro Action die Skelette / Data
-        skeleton_data = load_data_from_skeleton_path(self.skeleton_paths)
+        y = self.actions    # 45 Klassen
+        for i in self.actions:
+            if i == 'charge_cell_phone':
+                y = i
+
+        #The shape of node_features should be
+        # (num_nodes, num_features),
+        # 21, 3
+        # where num_nodes is the total number of nodes in the graph, and num_features is the number of features each node has
+        node_features = self.skeleton_data['charge_cell_phone'][idx]
         # Optional: Transformiere die Daten (z. B. Normalisierung)
         if self.transform:
-            data = self.transform(data)
+            node_features = self.transform(node_features)
 
-        return node_features, y
+        return node_features, edge_index, y
 
 
 
