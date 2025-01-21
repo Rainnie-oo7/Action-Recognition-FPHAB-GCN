@@ -1,40 +1,49 @@
+import os.path as osp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.data import Data
+from mkl_random.mklrand import geometric
+from torch.utils.data import DataLoader
 from torch_geometric.nn import GCNConv
+from torch_geometric.nn import global_mean_pool
+from torch_geometric.nn import GraphConv
 from torch.nn import Linear
-import load_all_skeletons
+import torchvision.transforms as transforms
+import torch_geometric.nn import Data
+
 from Mydataset import SkeletonDataset
 
-# Beispiel: 21 Gelenke mit 3 Features (XYZ)
 num_joints = 21
 
-node_features, _ = dataset
+# Bildtransformation (z.B. Normalisierung)
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
+batch_size = 32
+# Dataset und DataLoader
+path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
+dataset = SkeletonDataset(path, transform=transform)
+train_dataset = node_features, edge_index, _ =  dataset[:150]
+test_dataset = dataset[150:]
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 
-edge_index = torch.tensor([         # Adjazenzmatrix für 21 Handgelenke (Indexierung korrigiert)
-    (0, 1), (1, 2), (2, 3), (3, 4),  # Daumen
-    (0, 5), (5, 6), (6, 7), (7, 8),  # Zeigefinger
-    (0, 9), (9, 10), (10, 11), (11, 12),  # Mittelfinger
-    (0, 13), (13, 14), (14, 15), (15, 16),  # Ringfinger
-    (0, 17), (17, 18), (18, 19), (19, 20)   # Kleiner Finger
-], dtype=torch.long)
 
 # Transponieren für die Form [2, num_edges]
 edge_index = edge_index.t()
-
-# Graph-Datenobjekt
-data = Data(x=node_features, edge_index=edge_index)
 
 # GCN-Modell
 class GCN(torch.nn.Module):
     def __init__(self, hidden_channels):
         super(GCN, self).__init__()
         torch.manual_seed(12345)
-        self.conv1 = GCNConv(dataset.num_node_features, hidden_channels)
+        self.conv1 = GCNConv(63, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.lin = Linear(hidden_channels, dataset.num_classes)
+        self.lin = Linear(hidden_channels, 63)
 
     def forward(self, x, edge_index, batch):
         # 1. Obtain node embeddings
@@ -54,104 +63,38 @@ class GCN(torch.nn.Module):
         return x
 
 # Modell initialisieren
-model = GCN(input_dim=3, hidden_dim=32, output_dim=3)
+model = GCN(hidden_channels=128)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-# siehe 2_PoseEstimation.libre office
-def combined_loss(pred_keypoints, pred_labels, true_keypoints, true_labels, num_keypoints, num_classes):
-    # MSE Loss für Keypoints (XYZ-Koordinaten)
-    keypoint_loss = nn.MSELoss()(pred_keypoints, true_keypoints)
-    
-    # Cross-Entropy Loss für die Labels (Klassifikation)
-    label_loss = 0
-    for i in range(num_keypoints):
-        label_loss += nn.CrossEntropyLoss()(pred_labels[:, i*num_classes:(i+1)*num_classes], true_labels[:, i])
+criterion = torch.nn.CrossEntropyLoss()
 
-    # Gesamter Verlust: Kombination von Keypoint- und Label-Verlust
-    total_loss = keypoint_loss + label_loss
-    return total_loss
-#______________________________________________________
-
-# Training-Loop (Dummy-Labels für Pose)
-labels = torch.rand(num_joints, 3)  # Zielpose
-for epoch in range(200):
-    optimizer.zero_grad()
-    out = model(data)
-    loss = F.mse_loss(out, labels)
-    loss.backward()
-    optimizer.step()
-    print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
-# node_features = # XYZ-Koordinaten    tensor(21, 3)     tensor([[x, y, z], [x, y, z] .. 21 mal [x, y, z]])
-# also wird nur ein Frame ans Model uebergeben!!!
-#__________________________________________________mit DataLoader__________________________:_____________________
-# DataLoader erstellen
-batch_size = 32
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
-# Training mit DataLoader
-for epoch in range(num_epochs):
-    for data, label in dataloader:
-        # Daten und Labels an Modell übergeben
-        outputs = model(data)
-        loss = loss_fn(outputs, label)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-#__________________________________________________________
-def train(model, train_loader, criterion, optimizer, num_epochs=10):
+def train():
     model.train()
-    for epoch in range(num_epochs):
-        running_loss = 0.0
-        for images, keypoints in train_loader:
-            # Bilder und Keypoints auf das richtige Device verschieben (z.B. CUDA, wenn verfügbar)
-            images = images.cuda()
-            keypoints = keypoints.cuda()
 
-            # Optimierungsschritt
-            optimizer.zero_grad()
+    for data in train_loader:  # Iterate in batches over the training dataset.
+         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+         loss = criterion(out, data.y)  # Compute the loss.
+         loss.backward()  # Derive gradients.
+         optimizer.step()  # Update parameters based on gradients.
+         optimizer.zero_grad()  # Clear gradients.
 
-            # Vorwärtsdurchlauf
-            outputs = model(images)
+def test(loader):
+     model.eval()
 
-            # Verlust berechnen
-            loss = criterion(outputs, keypoints)
-            loss.backward()
+     correct = 0
+     for data in loader:  # Iterate in batches over the training/test dataset.
+         out = model(data.x, data.edge_index, data.batch)
+         pred = out.argmax(dim=1)  # Use the class with highest probability.
+         correct += int((pred == data.y).sum())  # Check against ground-truth labels.
+     return correct / len(loader.dataset)  # Derive ratio of correct predictions.
 
-            # Optimierungsschritt
-            optimizer.step()
 
-            running_loss += loss.item()
+for epoch in range(1, 171):
+    train()
+    train_acc = test(train_loader)
+    test_acc = test(test_loader)
+    print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss/len(train_loader)}")
-
-################################################################
-# Hyperparameter
-image_paths = [...]  # Liste der Bildpfade
-keypoint_annotations = [...]  # Liste der XYZ-Koordinaten (z.B. für 17 Keypoints = 17 * 3 = 51 Werte)
-
-# Bildtransformation (z.B. Normalisierung)
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
-
-# Dataset und DataLoader
-dataset = KeypointDataset(image_paths, keypoint_annotations, transform=transform)
-train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
-
-# Modell initialisieren
-num_keypoints = 17  # Anzahl der Keypoints, z.B. 17 für den menschlichen Körper
-model = KeypointDetectionModel(num_keypoints).cuda()
-
-# Optimizer und Verlustfunktion
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-criterion = nn.MSELoss()
-
-# Training starten
-train(model, train_loader, criterion, optimizer)
-#############################Vorhersage###################################
 def predict(model, image):
     model.eval()
     with torch.no_grad():

@@ -2,9 +2,8 @@ import os
 import numpy as np
 import os.path as osp
 
-
-
 def load_all_skeletons(data_root):
+    actions = []
     skeleton_paths = {}
     target_dir = os.path.join(data_root, 'Hand_pose_annotation_v1')
     # Iteriere durch alle Subjects
@@ -21,17 +20,15 @@ def load_all_skeletons(data_root):
                         # Group skeleton paths by action # Init Liste für die Aktion, wenn sie noch nicht vorhanden,
                             if actiondir not in skeleton_paths:
                                 skeleton_paths[actiondir] = []
+                                actions.append(actiondir)
+                            for participiantdir in os.listdir(action_path):
+                                participiant_path = os.path.join(action_path, participiantdir)
+                                if os.path.isdir(subject_path):
+                                    skeleton_txtpath = os.path.join(participiant_path, 'skeleton.txt')
+                                    # Appende den Pfad in die Liste der entsprechenden Aktion
+                                    skeleton_paths[actiondir].append(skeleton_txtpath)
 
-                        # Iteriere durch alle Sequenzen
-                        for sequencedir in os.listdir(action_path):
-                            sequence_path = os.path.join(action_path, sequencedir)
-                            skeleton_file = os.path.join(sequence_path, 'skeleton.txt')
-                            if os.path.isfile(skeleton_file):
-                                # Appende den Pfad in die Liste der entsprechenden Aktion
-                                skeleton_paths[actiondir].append(skeleton_file)
-
-
-    return skeleton_paths
+    return skeleton_paths, actions
 
 #Lade aus Dictionary-verpackte-Action-gruppierte Pfade
 def load_data_from_skeleton_path(paths_dict):
