@@ -1,5 +1,3 @@
-/mpii_human_pose_v1
-/mpii_human_pose_v1_u12_2
 /.idea
+/__pycache__
 /First-PersonHandActionBenchmarkF-PHAB
-/load_example.py

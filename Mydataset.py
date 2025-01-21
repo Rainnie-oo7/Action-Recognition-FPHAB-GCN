@@ -6,27 +6,14 @@ import numpy as np
 import sys
 import os
 from torch.utils.data import Dataset, DataLoader
-import load_clean
-import load_all_skeletons
-import process_skeleton as sk
-from configs import config_seamer as cf
-
-sys.path.append('/home/boris.grillborzer/PycharmProjects/PoseEstimationFPHAB')
-data, _, _ = sk.process_files(cf.path_dataset)
-path_dataset_depthimages = cf.path_dataset_depthimages
-
+from load_all_skeletons import load_all_skeletons, load_data_from_skeleton_path
 
 class SkeletonDataset(Dataset):
     def __init__(self, path_dataset_depthimages, data_paths, labels, transform=None):
-        for dir in path_dataset_depthimages:
-            folder = os.join
+
         self.image_paths = image_paths  # Liste von Pfaden
         self.keypoint_annotations = keypoint_annotations
-        self.labels = ["SpineBase", "SpineMid", "Neck", "Head", "ShoulderLeft", "ElbowLeft",
-                       "WristLeft", "HandLeft", "ShoulderRight", "ElbowRight", "WristRight",
-                       "HandRight", "HipLeft", "KneeLeft", "AnkleLeft", "FootLeft",
-                       "HipRight", "KneeRight", "AnkleRight", "FootRight", "SpineShoulder",
-                       "HandTipLeft", "ThumbLeft", "HandTipRight", "ThumbRight"]  # 25 Stück
+        self.labels = ["Wrist, TMCP, IMCP, MMCP, RMCP, PMCP, TPIP, TDIP, TTIP, IPIP, IDIP, ITIP, MPIP, MDIP, MTIP, RPIP, RDIP, RTIP, PPIP, PDIP, PTIP"]  # 21 Stück
         self.transform = transform
 
     def __len__(self):
@@ -36,15 +23,12 @@ class SkeletonDataset(Dataset):
         image = cv2.imread(self.image_paths[idx])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Von BGR zu RGB konvertieren
 
-        # Lade die Skelettdaten
-        keypoints = np.loadtxt(self.data_paths[idx])  # Beispiel für das Laden der txt-Daten
-        label = self.labels[idx]
 
         # Optional: Transformiere die Daten (z. B. Normalisierung)
         if self.transform:
             data = self.transform(data)
 
-        return data, label
+        return ???
 
 
 data_root = osp.normpath(
