@@ -16,12 +16,13 @@ class SkeletonDataset(Dataset):
     def __init__(self, path, transform=None):
         # Lädt pro Action die Skelett-Pfade
         self.skeleton_paths, self.actions = load_all_skeletons(path)
+        self.hotend_indexed_dict = {action: index for index, action in enumerate(self.actions)}
         # Lädt pro Action die Skelette / Data
-        self.skeleton_data, self.grouped_data_list = load_data_from_skeleton_path(self.skeleton_paths)
+        self.datatl = load_data_from_skeleton_path(self.skeleton_paths, self.hotend_indexed_dict)
         self.transform = transform
 
     def __len__(self):
-        return len(self.skeleton_data['charge_cell_phone'])
+        return len(self.datatl)
 
     def __getitem__(self, idx):
 
@@ -33,18 +34,27 @@ class SkeletonDataset(Dataset):
             [0, 17], [17, 18], [18, 19], [19, 20]  # Kleiner Finger
         ], dtype=torch.long)
 
+        # actions = [
+        #     'use_flash', 'handshake', 'close_peanut_butter', 'light_candle', 'scoop_spoon', 'put_sugar',
+        #     'wash_sponge', 'open_juice_bottle', 'prick', 'close_liquid_soap', 'flip_sponge', 'open_peanut_butter',
+        #     'sprinkle', 'put_tea_bag', 'high_five', 'close_milk', 'pour_milk', 'give_card', 'open_milk',
+        #     'squeeze_paper', 'flip_pages', 'give_coin', 'pour_juice_bottle', 'toast_wine', 'open_soda_can',
+        #     'close_juice_bottle', 'put_salt', 'tear_paper', 'receive_coin', 'open_liquid_soap',
+        #     'take_letter_from_enveloppe', 'pour_liquid_soap', 'unfold_glasses', 'charge_cell_phone', 'drink_mug',
+        #     'open_letter', 'open_wallet', 'scratch_sponge', 'read_letter', 'pour_wine', 'write', 'clean_glasses',
+        #     'squeeze_sponge', 'stir', 'use_calculator'
+        # ]
+
         y = self.actions    # 45 Klassen
-        for i in self.actions:
-            if i == 'charge_cell_phone':
-                y = 1
+
 
         #The shape of node_features should be
         # (num_nodes, num_features),
         # 21, 3
         # where num_nodes is the total number of nodes in the graph, and num_features is the number of features each node has
-        node_features = self.grouped_data_list[0][idx]
-        node_features = torch.tensor(node_features, dtype=torch.float32)
-        data = Data(x=node_features, edge_index=edge_index.t(), y=torch.tensor([y], dtype=torch.long))
+
+        node_features = torch.tensor(self.datatl[idx][1], dtype=torch.float32)
+        data = Data(x=node_features.squeeze(), edge_index=edge_index.t(), y=torch.tensor(self.datatl[idx][0], dtype=torch.long))
 
         #Transformiere die Daten (z. B. Normalisierung)
         if self.transform:
