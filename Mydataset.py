@@ -62,6 +62,7 @@ class SkeletonDataset(Dataset):
         if self.transform:
             data = self.transform(data)
 
+
         print()
         return data
 
