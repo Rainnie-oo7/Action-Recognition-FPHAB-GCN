@@ -28,18 +28,12 @@ train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 
 train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-node_features, edge_index, y = train_dataset[0]
-node_featurestest, edge_indextest, ytest = test_dataset[0]
+data = train_dataset[0]
+datatest = test_dataset[0]
 
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=Batch.from_data_list)
 test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=Batch.from_data_list)
 
-data = Data(x=node_features, edge_index=edge_index, y=y)
-data.y = data.y.clamp(0, num_joints - 1)
-print()
-
-datatest = Data(x=node_featurestest, edge_index=edge_indextest, y=ytest)
-datatest.y = data.y.clamp(0, num_joints - 1)
 
 # GCN-Modell
 class GCN(torch.nn.Module):

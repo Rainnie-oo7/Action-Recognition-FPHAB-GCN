@@ -56,6 +56,7 @@ class SkeletonDataset(Dataset):
 
         node_features = torch.tensor(self.datatl[idx][1], dtype=torch.float32)
         data = Data(x=node_features, edge_index=edge_index.t(), y = torch.tensor(self.datatl[idx][0], dtype=torch.uint8))
+        data.y = data.y.clamp(0, 20)    # Konvertiert Hard Numbers into Decimal 0–1
 
         #Transformiere die Daten (z. B. Normalisierung)
         if self.transform:
