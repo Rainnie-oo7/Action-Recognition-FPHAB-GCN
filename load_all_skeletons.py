@@ -32,58 +32,90 @@ def load_all_skeletons(data_root):
     return skeleton_paths, actions
 
 # [(0, [[x, y, z], [x, y, z], ..]]),     (1, [[x, y, z], [x, y, z], ..]]),    (2, [[x, y, z], [x, y, z], ..]])]
-# def load_data_from_skeleton_path(paths_dict, labels):
-#     action_list_with_labels = []
-#
-#     for action, paths in paths_dict.items():
-#         # Holen des label_value für die aktuelle Aktion aus dem Dictionary
-#         label_value = labels.get(action, None)
-#
-#         if label_value is not None:
-#             # Liste zum Speichern der Skeleton-Daten für diese Aktion
-#             skeleton_data = []
-#
-#             for path in paths:
-#                 try:
-#                     # Lade die Skelettdaten aus der Datei
-#                     skeleton_onetxt = np.loadtxt(path)
-#                     # Entferne die erste Spalte
-#                     skeleton_onetxt = skeleton_onetxt[:, 1:]
-#                     action_data = [row.reshape(-1, 3) for row in skeleton_onetxt]
-#
-#                     skeleton_data.append(action_data)
-#                 except Exception as e:
-#                     print(f"Fehler beim Laden von {path}: {e}")
-#
-#             # Füge die Skelettdaten als Tupel mit dem label_value hinzu
-#             for coordinates in skeleton_data:
-#                 for coord in coordinates:
-#                     action_list_with_labels.append((label_value, coord.tolist()))  # Liste der Koordinaten hinzufügen
-#
-#     return action_list_with_labels
-
 def load_data_from_skeleton_path(paths_dict, labels):
     action_list_with_labels = []
 
     for action, paths in paths_dict.items():
-        # Holen des label_value für die aktuelle Aktion
+        # Holen des label_value für die aktuelle Aktion aus dem Dictionary
         label_value = labels.get(action, None)
 
         if label_value is not None:
+            # Liste zum Speichern der Skeleton-Daten für diese Aktion
+            skeleton_data = []
+
             for path in paths:
                 try:
                     # Lade die Skelettdaten aus der Datei
                     skeleton_onetxt = np.loadtxt(path)
                     # Entferne die erste Spalte
                     skeleton_onetxt = skeleton_onetxt[:, 1:]
-                    # Jede Zeile repräsentiert eine Sammlung von Punkten (z. B. joints)
-                    for row in skeleton_onetxt:
-                        # Teile jede Zeile in Gruppen von [x, y, z]
-                        coordinates = row.reshape(-1, 3)
-                        for coord in coordinates:
-                            action_list_with_labels.append((label_value, coord.tolist()))
+                    action_data = [row.reshape(-1, 3) for row in skeleton_onetxt]
+
+                    skeleton_data.append(action_data)
                 except Exception as e:
                     print(f"Fehler beim Laden von {path}: {e}")
+            skmat = np.asarray(skeleton_data[0])
+            # Füge die Skelettdaten als Tupel mit dem label_value hinzu
+            for coordinates in skmat:
+                action_list_with_labels.append((label_value, coordinates))  # Liste der Koordinaten hinzufügen
 
     return action_list_with_labels
+
+# [(1, [x1, y1, z1]), (1, [x2, y2, z2]), (1, [xn, yn, zn]),     (2, [x1, y1, z1]), (2, [x2, y2, z2]), (2, [xn, yn, zn]),    ...,    (m, [x1, y1, z1]), (m, [x2, y2, z2]), (m, [xn, yn, zn])]
+# def load_data_from_skeleton_path(paths_dict, labels):
+#     action_list_with_labels = []
+#
+#     for action, paths in paths_dict.items():
+#         # Holen des label_value für die aktuelle Aktion
+#         label_value = labels.get(action, None)
+#
+#         if label_value is not None:
+#             for path in paths:
+#                 try:
+#                     # Lade die Skelettdaten aus der Datei
+#                     skeleton_onetxt = np.loadtxt(path)
+#                     # Entferne die erste Spalte
+#                     skeleton_onetxt = skeleton_onetxt[:, 1:]
+#                     # Jede Zeile repräsentiert eine Sammlung von Punkten (z. B. joints)
+#                     for row in skeleton_onetxt:
+#                         # Teile jede Zeile in Gruppen von [x, y, z]
+#                         coordinates = row.reshape(-1, 3)
+#                         for coord in coordinates:
+#                             action_list_with_labels.append((label_value, coord.tolist()))
+#                 except Exception as e:
+#                     print(f"Fehler beim Laden von {path}: {e}")
+#
+#     return action_list_with_labels
+
+#dict aneinadnergekettte lsiten brauche ja nur eine Zeile immer hmm
+# def load_data_from_skeleton_path(paths_dict, labels):
+#     action_matrices = {}  # Dictionary zur Speicherung von Matrizen pro Label
+#
+#     for action, paths in paths_dict.items():
+#         # Holen des label_value für die aktuelle Aktion aus dem Dictionary
+#         label_value = labels.get(action, None)
+#
+#         if label_value is not None:
+#             # Liste zum Speichern aller Koordinaten für diese Aktion
+#             skeleton_data = []
+#
+#             for path in paths:
+#                 try:
+#                     # Lade die Skelettdaten aus der Datei
+#                     skeleton_onetxt = np.loadtxt(path)
+#                     # Entferne die erste Spalte (falls sie nicht benötigt wird)
+#                     skeleton_onetxt = skeleton_onetxt[:, 1:]
+#                     # Konvertiere in eine Liste von [x, y, z] für jeden Frame
+#                     action_data = [row.reshape(-1, 3) for row in skeleton_onetxt]
+#
+#                     skeleton_data.extend(action_data)  # Füge alle Frames hinzu
+#                 except Exception as e:
+#                     print(f"Fehler beim Laden von {path}: {e}")
+#
+#             # Erstelle eine NumPy-Matrix aus den gesammelten Koordinaten
+#             if skeleton_data:
+#                 action_matrix = np.vstack(skeleton_data)  # Form [num_frames, 3]
+#                 action_matrices[label_value] = action_matrix  # Speichere Matrix im Dictionary
+#
+#     return action_matrices
 

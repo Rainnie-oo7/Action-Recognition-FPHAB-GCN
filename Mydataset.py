@@ -19,6 +19,7 @@ class SkeletonDataset(Dataset):
         self.hotend_indexed_dict = {action: index for index, action in enumerate(self.actions)}
         # Lädt pro Action die Skelette / Data
         self.datatl = load_data_from_skeleton_path(self.skeleton_paths, self.hotend_indexed_dict)
+
         self.transform = transform
 
     def __len__(self):
@@ -54,7 +55,7 @@ class SkeletonDataset(Dataset):
         # where num_nodes is the total number of nodes in the graph, and num_features is the number of features each node has
 
         node_features = torch.tensor(self.datatl[idx][1], dtype=torch.float32)
-        data = Data(x=node_features.squeeze(), edge_index=edge_index.t(), y=torch.tensor(self.datatl[idx][0], dtype=torch.long))
+        data = Data(x=node_features, edge_index=edge_index.t(), y = torch.tensor(self.datatl[idx][0], dtype=torch.uint8))
 
         #Transformiere die Daten (z. B. Normalisierung)
         if self.transform:

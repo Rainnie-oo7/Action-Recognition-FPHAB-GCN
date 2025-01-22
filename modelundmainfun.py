@@ -35,8 +35,11 @@ train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=
 test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=Batch.from_data_list)
 
 data = Data(x=node_features, edge_index=edge_index, y=y)
-datatest = Data(x=node_featurestest, edge_index=edge_indextest, y=ytest)
+data.y = data.y.clamp(0, num_joints - 1)
+print()
 
+datatest = Data(x=node_featurestest, edge_index=edge_indextest, y=ytest)
+datatest.y = data.y.clamp(0, num_joints - 1)
 
 # GCN-Modell
 class GCN(torch.nn.Module):
