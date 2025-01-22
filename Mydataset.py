@@ -43,13 +43,15 @@ class SkeletonDataset(Dataset):
         # 21, 3
         # where num_nodes is the total number of nodes in the graph, and num_features is the number of features each node has
         node_features = self.grouped_data_list[0][idx]
-        node_features = torch.tensor(node_features)
-        # Optional: Transformiere die Daten (z. B. Normalisierung)
+        node_features = torch.tensor(node_features, dtype=torch.float32)
+        data = Data(x=node_features, edge_index=edge_index.t(), y=torch.tensor([y], dtype=torch.long))
+
+        #Transformiere die Daten (z. B. Normalisierung)
         if self.transform:
-            node_features = self.transform(node_features)
-        yoyoy = Data(x=node_features, edge_index=edge_index.t(), y=torch.tensor([y]))
+            data = self.transform(data)
+
         print()
-        return yoyoy
+        return data
 
 
 

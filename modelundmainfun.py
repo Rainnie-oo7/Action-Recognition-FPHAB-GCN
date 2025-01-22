@@ -15,14 +15,14 @@ from Mydataset import SkeletonDataset
 
 num_joints = 21
 
-# transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
+transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
 #  File "/home/boris.grillborzer/miniconda3/envs/gggten/lib/python3.10/site-packages/torch_geometric/transforms/normalize_features.py", line 24, in forward
 #     for store in data.stores:
 # AttributeError: 'Tensor' object has no attribute 'stores'
 batch_size = 32
 # Dataset und DataLoader
 path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
-dataset = SkeletonDataset(path, transform=None)
+dataset = SkeletonDataset(path, transform=transform)
 
 train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
@@ -34,8 +34,8 @@ node_featurestest, edge_indextest, ytest = test_dataset[0]
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=Batch.from_data_list)
 test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=Batch.from_data_list)
 
-data = Data(x=node_features, edge_index=edge_index)
-datatest = Data(x=node_featurestest, edge_index=edge_indextest)
+data = Data(x=node_features, edge_index=edge_index, y=y)
+datatest = Data(x=node_featurestest, edge_index=edge_indextest, y=ytest)
 
 
 # GCN-Modell
@@ -43,14 +43,17 @@ class GCN(torch.nn.Module):
     def __init__(self, hidden_channels):
         super(GCN, self).__init__()
         torch.manual_seed(12345)
-        self.conv1 = GCNConv(63, hidden_channels)
+        self.conv1 = GCNConv(3, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.lin = Linear(hidden_channels, 63)
+        self.lin = Linear(hidden_channels, 3)
 
     def forward(self, x, edge_index, batch):
+
         # 1. Obtain node embeddings
+
         x = self.conv1(x, edge_index)
+
         x = x.relu()
         x = self.conv2(x, edge_index)
         x = x.relu()
@@ -66,7 +69,7 @@ class GCN(torch.nn.Module):
         return x
 
 # Modell initialisieren
-model = GCN(hidden_channels=128)
+model = GCN(hidden_channels=64)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
@@ -76,7 +79,7 @@ def train():
 
     for data in train_loader:  # Iterate in batches over the training dataset.
          out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
-         loss = criterion(out, data.y)  # Compute the loss.
+         loss = criterion(out, data.y.view(-1))  # Compute the loss.
          loss.backward()  # Derive gradients.
          optimizer.step()  # Update parameters based on gradients.
          optimizer.zero_grad()  # Clear gradients.
