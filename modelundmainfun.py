@@ -19,7 +19,7 @@ transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bere
 #  File "/home/boris.grillborzer/miniconda3/envs/gggten/lib/python3.10/site-packages/torch_geometric/transforms/normalize_features.py", line 24, in forward
 #     for store in data.stores:
 # AttributeError: 'Tensor' object has no attribute 'stores'
-batch_size = 32
+batch_size = 4
 # Dataset und DataLoader
 path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
 dataset = SkeletonDataset(path, transform=transform)
@@ -66,7 +66,7 @@ class GCN(torch.nn.Module):
         return x
 
 # Modell initialisieren
-model = GCN(hidden_channels=64)
+model = GCN(hidden_channels=128)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
