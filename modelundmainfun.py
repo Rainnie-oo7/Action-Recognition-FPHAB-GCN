@@ -9,30 +9,37 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GraphConv
 from torch.nn import Linear
 from torch_geometric.transforms import NormalizeFeatures
-from torch_geometric.data import Data, Batch
+from torch_geometric.loader import DataLoader
+from get_data_to_list import  get_data_to_list
+from torch_geometric.transforms import NormalizeFeatures
 
-from Mydataset import SkeletonDataset
+# transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
+
+path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
+
+train_data = get_data_to_list(path)
+print()
+# #Transformiere die Daten (z. B. Normalisierung)
+# if transform:
+#     train_data = transform(train_data)
 
 num_joints = 21
 
-transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
 #  File "/home/boris.grillborzer/miniconda3/envs/gggten/lib/python3.10/site-packages/torch_geometric/transforms/normalize_features.py", line 24, in forward
 #     for store in data.stores:
 # AttributeError: 'Tensor' object has no attribute 'stores'
-batch_size = 4
+batch_size = 32
 # Dataset und DataLoader
-path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
-dataset = SkeletonDataset(path, transform=transform)
 
-train_size = int(0.8 * len(dataset))
-test_size = len(dataset) - train_size
+train_size = int(0.8 * len(train_data))
+test_size = len(train_data) - train_size
 
-train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
-data = train_dataset[0]
-datatest = test_dataset[0]
+train_dataset, test_dataset = random_split(train_data, [train_size, test_size])
+data = train_dataset
+datatest = test_dataset
 
-train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=Batch.from_data_list)
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=Batch.from_data_list)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
 # GCN-Modell
@@ -43,14 +50,12 @@ class GCN(torch.nn.Module):
         self.conv1 = GCNConv(3, hidden_channels)
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.lin = Linear(hidden_channels, 3)
+        self.lin = Linear(hidden_channels, 45)
 
     def forward(self, x, edge_index, batch):
 
         # 1. Obtain node embeddings
-
         x = self.conv1(x, edge_index)
-
         x = x.relu()
         x = self.conv2(x, edge_index)
         x = x.relu()
@@ -93,12 +98,13 @@ def test(loader):
      return correct / len(loader.dataset)  # Derive ratio of correct predictions.
 
 
-for epoch in range(1, 171):
+for epoch in range(1, 10000):
     train()
     train_acc = test(train_loader)
     test_acc = test(test_loader)
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
 
+#Epoch: 322, Train Acc: 0.5431, Test Acc: 0.5379
 def predict(model, image):
     model.eval()
     with torch.no_grad():
