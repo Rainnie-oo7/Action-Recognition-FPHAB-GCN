@@ -102,9 +102,25 @@ for epoch in range(1, 10000):
     train()
     train_acc = test(train_loader)
     test_acc = test(test_loader)
+
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
+    # Adapt the learning rate based on the epoch    #Weight Decay?
+    if epoch == 50:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = 0.1 * param_group['lr']
 
 #Epoch: 322, Train Acc: 0.5431, Test Acc: 0.5379
+#Epoch: 322, Train Acc: 0.7407, Test Acc: 0.7289    second run with weight decay
+#Epoch: 983, Train Acc: 0.8275, Test Acc: 0.8189        v
+#Epoch:1381, Train Acc: 0.8429, Test Acc: 0.8321
+#Epoch:1860, Train Acc: 0.8651, Test Acc: 0.8617
+#Epoch: 2064, Train Acc: 0.8854, Test Acc: 0.8749
+#Epoch: 2502, Train Acc: 0.8813, Test Acc: 0.8836
+
+# Epoch: 5657, Train Acc: 0.9118, Test Acc: 0.9001
+
+#Epoch 9714, Train Acc: 0.9497 E 8584, Test Acc: 0.9308 Max.
+
 def predict(model, image):
     model.eval()
     with torch.no_grad():
