@@ -18,18 +18,13 @@ from get_data_to_list import  get_data_to_list
 path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
 
 train_data = get_data_to_list(path)
-print()
+#4551 Liste von Objekten á:  x, edgeindex, y
+
 # #Transformiere die Daten (z. B. Normalisierung)
 # if transform:
 #     train_data = transform(train_data)
 
-num_joints = 21
-
-#  File "/home/boris.grillborzer/miniconda3/envs/gggten/lib/python3.10/site-packages/torch_geometric/transforms/normalize_features.py", line 24, in forward
-#     for store in data.stores:
-# AttributeError: 'Tensor' object has no attribute 'stores'
-batch_size = 32
-# Dataset und DataLoader
+batch_size = 1
 
 train_size = int(0.8 * len(train_data))
 test_size = len(train_data) - train_size
@@ -53,45 +48,52 @@ class TemporalGraphConv(nn.Module):
         x = F.relu(x)
         return x
 
+
 class TemporalGraphNNWithMemory(nn.Module):
     def __init__(self, in_channels, hidden_channels, num_classes, num_layers=2):
         super(TemporalGraphNNWithMemory, self).__init__()
         self.layers = nn.ModuleList()
 
-        # Temporal Graph Convolution Layers #Wieso 2 ?
         self.layers.append(TemporalGraphConv(in_channels, hidden_channels))
         for _ in range(num_layers - 1):
             self.layers.append(TemporalGraphConv(hidden_channels, hidden_channels))
 
-        # LSTM für Memory
         self.lstm = nn.LSTM(hidden_channels, hidden_channels, batch_first=True)
 
-        # Klassifikation Layer
         self.classifier = nn.Linear(hidden_channels, num_classes)
 
     def forward(self, x, edge_index):
         for layer in self.layers:
             x = layer(x, edge_index)
 
-        # Reshape for LSTM (batch_size, seq_len, features)
-        batch_size = x.size(0) // 10  # Assuming 10 time steps
-        x = x.view(batch_size, 10, -1)  # Reshape to [Batch, Time, Features]
+        total_elements = x.numel()  #total_elements des Batches = 1323
+        time_steps = 10
 
-        # LSTM Memory
+        num_features = x.size(1)  # 63
+
+        batch_size = x.size(0)  # 21
+
+        # assert total_elements == batch_size * time_steps * num_features, \
+        #     f"Shape mismatch: {total_elements} elements vs {batch_size * time_steps * num_features}"
+
+        # Reshape der Tensorform zu [Batch, Time, Features]
+        x = x.view(batch_size, time_steps, 3)
+
+        # Gedächtnis (LSTM)
         x, _ = self.lstm(x)
 
-        # Global Pooling and Classification
-        x = torch.mean(x, dim=1)  # Pool across time steps
+        # Global Pooling und Klassifikation
+        x = torch.mean(x, dim=1)  # Pooling über die Zeitachse
         return self.classifier(x)
 
 
 # Modell initialisieren
-# def __init__(self, in_channels, hidden_channels, num_classes, num_layers=2
-model = TemporalGraphNNWithMemory(in_channels = data.x, hidden_channels=128, num_classes=45)
+in_channels = train_data[0].x.shape[1]  # Nimm die Anzahl der Merkmale der ersten Instanz
+
+model = TemporalGraphNNWithMemory(in_channels=in_channels, hidden_channels=63, num_classes=45)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
-
 
 def train():
     model.train()
@@ -114,7 +116,7 @@ def test(loader):
      return correct / len(loader.dataset)  # Derive ratio of correct predictions.
 
 
-for epoch in range(1, 10000):
+for epoch in range(1, 100):
     train()
     train_acc = test(train_loader)
     test_acc = test(test_loader)
@@ -137,10 +139,10 @@ for epoch in range(1, 10000):
 
 #Epoch 9714, Train Acc: 0.9497 E 8584, Test Acc: 0.9308 Max.
 
-def predict(model, image):
-    model.eval()
-    with torch.no_grad():
-        image = transform(image).unsqueeze(0).cuda()  # Batch-Dimension hinzufügen
-        outputs = model(image)
-        return outputs.cpu().numpy().flatten()  # Gibt die XYZ-Koordinaten der Keypoints zurück
+# def predict(model, image):
+#     model.eval()
+#     with torch.no_grad():
+#         image = transform(image).unsqueeze(0).cuda()  # Batch-Dimension hinzufügen
+#         outputs = model(image)
+#         return outputs.cpu().numpy().flatten()  # Gibt die XYZ-Koordinaten der Keypoints zurück
 
