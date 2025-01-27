@@ -4,14 +4,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from mkl_random.mklrand import geometric
 from torch.utils.data import DataLoader, random_split
+from torch_geometric.data import Data, DataLoader
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GraphConv
+import torch.optim as optim
 from torch.nn import Linear
 from torch_geometric.transforms import NormalizeFeatures
-from torch_geometric.loader import DataLoader
 from get_data_to_list import  get_data_to_list
-from torch_geometric.transforms import NormalizeFeatures
 
 # transform = NormalizeFeatures()  # Normalisiert die Node-Features auf einen Bereich von [0, 1]
 
@@ -42,36 +42,52 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
-# GCN-Modell
-class GCN(torch.nn.Module):
-    def __init__(self, hidden_channels):
-        super(GCN, self).__init__()
-        torch.manual_seed(12345)
-        self.conv1 = GCNConv(3, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, hidden_channels)
-        self.conv3 = GCNConv(hidden_channels, hidden_channels)
-        self.lin = Linear(hidden_channels, 45)
+class TemporalGraphConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(TemporalGraphConv, self).__init__()
+        self.gcn = GCNConv(in_channels, out_channels)
 
-    def forward(self, x, edge_index, batch):
-
-        # 1. Obtain node embeddings
-        x = self.conv1(x, edge_index)
-        x = x.relu()
-        x = self.conv2(x, edge_index)
-        x = x.relu()
-        x = self.conv3(x, edge_index)
-
-        # 2. Readout layer
-        x = global_mean_pool(x, batch)  # [batch_size, hidden_channels]
-
-        # 3. Apply a final classifier
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = self.lin(x)
-
+    def forward(self, x, edge_index):
+        # Spatial Graph Convolution
+        x = self.gcn(x, edge_index)
+        x = F.relu(x)
         return x
 
+class TemporalGraphNNWithMemory(nn.Module):
+    def __init__(self, in_channels, hidden_channels, num_classes, num_layers=2):
+        super(TemporalGraphNNWithMemory, self).__init__()
+        self.layers = nn.ModuleList()
+
+        # Temporal Graph Convolution Layers #Wieso 2 ?
+        self.layers.append(TemporalGraphConv(in_channels, hidden_channels))
+        for _ in range(num_layers - 1):
+            self.layers.append(TemporalGraphConv(hidden_channels, hidden_channels))
+
+        # LSTM für Memory
+        self.lstm = nn.LSTM(hidden_channels, hidden_channels, batch_first=True)
+
+        # Klassifikation Layer
+        self.classifier = nn.Linear(hidden_channels, num_classes)
+
+    def forward(self, x, edge_index):
+        for layer in self.layers:
+            x = layer(x, edge_index)
+
+        # Reshape for LSTM (batch_size, seq_len, features)
+        batch_size = x.size(0) // 10  # Assuming 10 time steps
+        x = x.view(batch_size, 10, -1)  # Reshape to [Batch, Time, Features]
+
+        # LSTM Memory
+        x, _ = self.lstm(x)
+
+        # Global Pooling and Classification
+        x = torch.mean(x, dim=1)  # Pool across time steps
+        return self.classifier(x)
+
+
 # Modell initialisieren
-model = GCN(hidden_channels=128)
+# def __init__(self, in_channels, hidden_channels, num_classes, num_layers=2
+model = TemporalGraphNNWithMemory(in_channels = data.x, hidden_channels=128, num_classes=45)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
@@ -81,7 +97,7 @@ def train():
     model.train()
 
     for data in train_loader:  # Iterate in batches over the training dataset.
-         out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+         out = model(data.x, data.edge_index)  # Perform a single forward pass.
          loss = criterion(out, data.y.view(-1))  # Compute the loss.
          loss.backward()  # Derive gradients.
          optimizer.step()  # Update parameters based on gradients.
@@ -92,7 +108,7 @@ def test(loader):
 
      correct = 0
      for data in loader:  # Iterate in batches over the training/test dataset.
-         out = model(data.x, data.edge_index, data.batch)
+         out = model(data.x, data.edge_index)
          pred = out.argmax(dim=1)  # Use the class with highest probability.
          correct += int((pred == data.y).sum())  # Check against ground-truth labels.
      return correct / len(loader.dataset)  # Derive ratio of correct predictions.
