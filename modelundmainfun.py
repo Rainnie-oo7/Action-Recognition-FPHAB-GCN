@@ -37,60 +37,77 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
-class TemporalGraphConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(TemporalGraphConv, self).__init__()
-        self.gcn = GCNConv(in_channels, out_channels)
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-    def forward(self, x, edge_index):
-        # Spatial Graph Convolution
-        x = self.gcn(x, edge_index)
-        x = F.relu(x)
-        return x
+class GraphConv(nn.Module):
+    def __init__(self, in_features, out_features):
+        super(GraphConv, self).__init__()
+        self.fc = nn.Linear(in_features, out_features, bias=False)
 
+    def forward(self, x, adjacency_matrix):
+        """
+        x: Tensor of shape (batch_size, nodes, in_features)
+        adjacency_matrix: Tensor of shape (nodes, nodes)
+        """
+        out = torch.matmul(adjacency_matrix, x)  # Shape: (batch_size, nodes, in_features)
+        out = self.fc(out)  # Shape: (batch_size, nodes, out_features)
+        return out
 
-class TemporalGraphNNWithMemory(nn.Module):
-    def __init__(self, in_channels, hidden_channels, num_classes, num_layers=2):
-        super(TemporalGraphNNWithMemory, self).__init__()
-        self.layers = nn.ModuleList()
+class TemporalGCN(nn.Module):
+    def __init__(self, in_features, hidden_features, gru_hidden_size, num_classes, num_nodes):
+        super(TemporalGCN, self).__init__()
+        self.gcn = GraphConv(in_features, hidden_features)
+        self.gru = nn.GRU(hidden_features * num_nodes, gru_hidden_size, batch_first=True)
+        self.fc = nn.Linear(gru_hidden_size, num_classes)
 
-        self.layers.append(TemporalGraphConv(in_channels, hidden_channels))
-        for _ in range(num_layers - 1):
-            self.layers.append(TemporalGraphConv(hidden_channels, hidden_channels))
+    def forward(self, x, adjacency_matrix):
+        """
+        x: Tensor of shape (batch_size, sequence_length, nodes, features)
+        adjacency_matrix: Tensor of shape (nodes, nodes)
+        """
+        batch_size, seq_length, num_nodes, in_features = x.size()
 
-        self.lstm = nn.LSTM(hidden_channels, hidden_channels, batch_first=True)
+        # Apply GCN at each time step
+        gcn_out = []
+        for t in range(seq_length):
+            gcn_out.append(self.gcn(x[:, t], adjacency_matrix))  # Shape: (batch_size, nodes, hidden_features)
+        gcn_out = torch.stack(gcn_out, dim=1)  # Shape: (batch_size, seq_length, nodes, hidden_features)
 
-        self.classifier = nn.Linear(hidden_channels, num_classes)
+        # Reshape for GRU input
+        gru_input = gcn_out.view(batch_size, seq_length, -1)  # Shape: (batch_size, seq_length, nodes * hidden_features)
 
-    def forward(self, x, edge_index):
-        for layer in self.layers:
-            x = layer(x, edge_index)
+        # Pass through GRU
+        gru_out, _ = self.gru(gru_input)  # Shape: (batch_size, seq_length, gru_hidden_size)
 
-        total_elements = x.numel()  #total_elements des Batches = 1323
-        time_steps = 10
+        # Take the last time step's output
+        last_output = gru_out[:, -1, :]  # Shape: (batch_size, gru_hidden_size)
 
-        num_features = x.size(1)  # 63
+        # Final classification layer
+        out = self.fc(last_output)  # Shape: (batch_size, num_classes)
 
-        batch_size = x.size(0)  # 21
+        return out
 
-        # assert total_elements == batch_size * time_steps * num_features, \
-        #     f"Shape mismatch: {total_elements} elements vs {batch_size * time_steps * num_features}"
+# Beispiel zur Initialisierung
+num_nodes = 21
+in_features = 3
+hidden_features = 64
+gru_hidden_size = 128
+num_classes = 45
 
-        # Reshape der Tensorform zu [Batch, Time, Features]
-        x = x.view(batch_size, time_steps, 3)
+model = TemporalGCN(in_features, hidden_features, gru_hidden_size, num_classes, num_nodes)
 
-        # Gedächtnis (LSTM)
-        x, _ = self.lstm(x)
+# Beispiel-Daten
+batch_size = 32
+sequence_length = 45
+x = torch.randn(batch_size, sequence_length, num_nodes, in_features)
+adjacency_matrix = torch.eye(num_nodes)  # Identitätsmatrix als Beispiel
 
-        # Global Pooling und Klassifikation
-        x = torch.mean(x, dim=1)  # Pooling über die Zeitachse
-        return self.classifier(x)
+# Vorhersage
+y = model(x, adjacency_matrix)
+print(y.shape)  # Erwartet: (32, 10)
 
-
-# Modell initialisieren
-in_channels = train_data[0].x.shape[1]  # Nimm die Anzahl der Merkmale der ersten Instanz
-
-model = TemporalGraphNNWithMemory(in_channels=in_channels, hidden_channels=63, num_classes=45)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
