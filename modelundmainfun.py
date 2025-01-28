@@ -37,10 +37,6 @@ train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 class GraphConv(nn.Module):
     def __init__(self, in_features, out_features):
         super(GraphConv, self).__init__()
