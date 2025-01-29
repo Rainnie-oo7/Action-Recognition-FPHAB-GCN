@@ -5,42 +5,28 @@ import torch.nn.functional as F
 from mkl_random.mklrand import geometric
 from torch.utils.data import DataLoader, random_split
 from torch_geometric.data import Data, DataLoader
-from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.nn import GraphConv
 import torch.optim as optim
 from torch.nn import Linear
 from torch_geometric.transforms import NormalizeFeatures
-
+from torch_geometric_temporal.nn import TGCN
 from Mydataset import SkeletonDataset
-from clean_load import  get_data_to_list
+from clean_load import get_data_to_list
+
+class TGCN(torch.nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(TGCN, self).__init__()
+        self.recurrent = TGCN(in_channels, out_channels, 2)
+        self.linear = torch.nn.Linear(out_channels, 45)
+
+    def forward(self, x, edge_index):
+        h = self.recurrent(x, edge_index)
+        h = F.relu(h)
+        h = self.linear(h)
+        return h
 
 
-##
-## TODO: = x!!! Muss noch in richtige Shape gebracht werden (batch_size, sequence_length, nodes, features) 4551 Liste von Objekten á:  x, edgeindex, y
-##
-
-
-class TemporalGCN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes, num_nodes):
-        super(TemporalGCN, self).__init__()
-        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, num_classes)
-
-    def forward(self, x, y):
-        # x = inn  # Node features
-
-        gru_input = x.view(batch_size, seq_length, -1)  # Shape: (batch_size, seq_length, nodes * hidden_features)
-
-        gru_out, _ = self.gru(gru_input)  # Shape: (batch_size, seq_length, gru_hidden_size)
-
-        # Nehme nur letzten Zeitpunkt Output
-        last_output = gru_out[:, -1, :]  # Shape: (batch_size, gru_hidden_size)
-
-        # classification layer
-        out = self.fc(last_output)  # Shape: (batch_size, num_classes)
-
-        return out
 ##
 # Beispiel-Daten
 input_size = 63
@@ -63,28 +49,14 @@ train_size = dataset_size - test_size  # Rest für das Trainingsset
 dataset_tr, dataset_tes = random_split(dataset, [train_size, test_size])
 """
 
-data_loader = torch.utils.data.DataLoader(
-    dataset_tr,
-    batch_size=1,
-    shuffle=True,
-)
-
-data_loader_test = torch.utils.data.DataLoader(
-    dataset_tes,
-    batch_size=1,
-    shuffle=False,
-)
+data_loader = torch.utils.data.DataLoader(dataset_tr, batch_size=1, shuffle=True)
+data_loader_test = torch.utils.data.DataLoader(dataset_tes, batch_size=1, shuffle=False)
 ##
-print()
+
 # in = data_loader.x
 
-model = TemporalGCN(input_size, hidden_size, num_layers, num_classes)
-##
-
-# Vorhersage
-y = model(data.x, data.y)
-print(y.shape)  # Erwartet: (32, 45)
-
+# Modell initialisieren
+model = TGCN(in_channels=63, out_channels=63)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = torch.nn.CrossEntropyLoss()
@@ -92,8 +64,8 @@ criterion = torch.nn.CrossEntropyLoss()
 def train():
     model.train()
 
-    for data in train_loader:  # Iterate in batches over the training dataset.
-         out = model(x, adjacency_matrix)  # Perform a single forward pass.
+    for data in data_loader:  # Iterate in batches over the training dataset.
+         out = model(data.x, data.edge_index)  # Perform a single forward pass.
          loss = criterion(out, data.y.view(-1))  # Compute the loss.
          loss.backward()  # Derive gradients.
          optimizer.step()  # Update parameters based on gradients.
@@ -103,17 +75,17 @@ def test(loader):
      model.eval()
 
      correct = 0
-     for data in loader:  # Iterate in batches over the training/test dataset.
-         out = model(x, adjacency_matrix)
+     for data in data_loader_test:  # Iterate in batches over the training/test dataset.
+         out = model(data.x, data.edge_index)
          pred = out.argmax(dim=1)  # Use the class with highest probability.
          correct += int((pred == data.y).sum())  # Check against ground-truth labels.
      return correct / len(loader.dataset)  # Derive ratio of correct predictions.
 
 
-for epoch in range(1, 100):
+for epoch in range(1, 10000):
     train()
-    train_acc = test(train_loader)
-    test_acc = test(test_loader)
+    train_acc = test(data_loader)
+    test_acc = test(data_loader_test)
 
     print(f'Epoch: {epoch:03d}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
     # Adapt the learning rate based on the epoch    #Weight Decay?
