@@ -5,11 +5,13 @@ import os.path as osp
 import matplotlib.pyplot as plt
 import numpy as np
 from load_all_skeletons import load_all_skeletons, load_data_from_skeleton_path
-
+from torch_geometric.data import Data, DataLoader
 
 if __name__ == '__main__':
     path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
     dataset = SkeletonDataset(path)
+    data_loader = DataLoader(dataset, shuffle=True)
+
     idx = 17
     # print(dataset.imgs[idx])
     print(dataset[idx])
