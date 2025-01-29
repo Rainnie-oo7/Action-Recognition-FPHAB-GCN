@@ -32,6 +32,9 @@ def load_all_skeletons(data_root):
 
     return skeleton_paths, actions
 
+
+#hall#
+
 # [(0, [[x, y, z], [x, y, z], ..]]),     (1, [[x, y, z], [x, y, z], ..]]),    (2, [[x, y, z], [x, y, z], ..]])]
 def load_data_from_skeleton_path(paths_dict, labels):
     action_list_with_labels = []
