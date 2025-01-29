@@ -3,6 +3,7 @@ import numpy as np
 import os.path as osp
 import torch
 
+
 def load_all_skeletons(data_root):
     actions = []
     skeleton_paths = {}
