@@ -60,7 +60,13 @@ def load_data_from_skeleton_path(paths_dict, labels):
             for coordinates in skmat:
                 action_list_with_labels.append((label_value, coordinates))  # Liste der Koordinaten hinzufügen
 
+
+
     return action_list_with_labels
+
+
+
+
 
 # [(1, [x1, y1, z1]), (1, [x2, y2, z2]), (1, [xn, yn, zn]),     (2, [x1, y1, z1]), (2, [x2, y2, z2]), (2, [xn, yn, zn]),    ...,    (m, [x1, y1, z1]), (m, [x2, y2, z2]), (m, [xn, yn, zn])]
 # def load_data_from_skeleton_path(paths_dict, labels):
