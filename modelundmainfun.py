@@ -11,45 +11,26 @@ from torch_geometric.nn import GraphConv
 import torch.optim as optim
 from torch.nn import Linear
 from torch_geometric.transforms import NormalizeFeatures
+
+from Mydataset import SkeletonDataset
 from clean_load import  get_data_to_list
 
-path = osp.normpath(osp.join(osp.dirname(__file__), "First-PersonHandActionBenchmarkF-PHAB"))
+
 ##
-train_data = get_data_to_list(path)
 ## TODO: = x!!! Muss noch in richtige Shape gebracht werden (batch_size, sequence_length, nodes, features) 4551 Liste von Objekten á:  x, edgeindex, y
 ##
 
-class GraphConv(nn.Module):
-    def __init__(self, in_features, out_features):
-        super(GraphConv, self).__init__()
-        self.fc = nn.Linear(in_features, out_features, bias=False)
-
-    def forward(self, x, adjacency_matrix):
-        # x: Tensor of shape (batch_size, nodes, in_features)
-        # adjacency_matrix: Tensor of shape (nodes, nodes)
-        out = torch.matmul(adjacency_matrix, x)  # Shape: (batch_size, nodes, in_features)
-        out = self.fc(out)  # Shape: (batch_size, nodes, out_features)
-        return out
 
 class TemporalGCN(nn.Module):
-    def __init__(self, in_features, hidden_features, gru_hidden_size, num_classes, num_nodes):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes, num_nodes):
         super(TemporalGCN, self).__init__()
-        self.gcn = GraphConv(in_features, hidden_features)
-        self.gru = nn.GRU(hidden_features * num_nodes, gru_hidden_size, batch_first=True)
-        self.fc = nn.Linear(gru_hidden_size, num_classes)
+        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
 
-    def forward(self, x, adjacency_matrix):
-        # x: Tensor of shape (batch_size, sequence_length, nodes, features)
-        # adjacency_matrix: Tensor of shape (nodes, nodes)
-        batch_size, seq_length, num_nodes, in_features = x.size()
+    def forward(self, x, y):
+        # x = inn  # Node features
 
-        # Apply GCN at each time step
-        gcn_out = []
-        for t in range(seq_length):
-            gcn_out.append(self.gcn(x[:, t], adjacency_matrix))  # Shape: (batch_size, nodes, hidden_features)
-        gcn_out = torch.stack(gcn_out, dim=1)  # Shape: (batch_size, seq_length, nodes, hidden_features)
-
-        gru_input = gcn_out.view(batch_size, seq_length, -1)  # Shape: (batch_size, seq_length, nodes * hidden_features)
+        gru_input = x.view(batch_size, seq_length, -1)  # Shape: (batch_size, seq_length, nodes * hidden_features)
 
         gru_out, _ = self.gru(gru_input)  # Shape: (batch_size, seq_length, gru_hidden_size)
 
@@ -62,55 +43,46 @@ class TemporalGCN(nn.Module):
         return out
 ##
 # Beispiel-Daten
-batch_size = 32
-sequence_length = 45
-num_nodes = 21
-in_features = 3
-hidden_features = 64
-gru_hidden_size = 128
+input_size = 63
+hidden_size = 256
+num_layers = 1
 num_classes = 45
 
-x = torch.randn(batch_size, sequence_length, num_nodes, in_features)
-adjacency_matrix = torch.tensor([
- [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
- [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
- [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
- [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1],
- [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]], dtype=torch.float32)  # Shape: (21, 21)
+dataset = SkeletonDataset(torch.utils.data.Dataset)
+
+indices = torch.randperm(len(dataset)).tolist()
+dataset_tr = torch.utils.data.Subset(dataset, indices[:4000])
+dataset_tes = torch.utils.data.Subset(dataset, indices[-551:])
+#oder:
+"""
+dataset_size = len(dataset)
+test_size = 551  # Größe des Testsets
+train_size = dataset_size - test_size  # Rest für das Trainingsset
+
+# Zufällige Teilung der Daten
+dataset_tr, dataset_tes = random_split(dataset, [train_size, test_size])
+"""
+
+data_loader = torch.utils.data.DataLoader(
+    dataset_tr,
+    batch_size=1,
+    shuffle=True,
+)
+
+data_loader_test = torch.utils.data.DataLoader(
+    dataset_tes,
+    batch_size=1,
+    shuffle=False,
+)
 ##
+print()
+# in = data_loader.x
 
-train_size = int(0.8 * len(train_data))
-test_size = len(train_data) - train_size
-
-train_dataset, test_dataset = random_split(train_data, [train_size, test_size])
-data = train_dataset
-datatest = test_dataset
-
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-##
-
-model = TemporalGCN(in_features, hidden_features, gru_hidden_size, num_classes, num_nodes)
+model = TemporalGCN(input_size, hidden_size, num_layers, num_classes)
 ##
 
 # Vorhersage
-y = model(x, adjacency_matrix)
+y = model(data.x, data.y)
 print(y.shape)  # Erwartet: (32, 45)
 
 
