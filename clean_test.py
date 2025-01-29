@@ -1,5 +1,5 @@
-import get_data_to_list
-from get_data_to_list import SkeletonDataset
+import clean_load
+from clean_load import SkeletonDataset
 import torch
 import os.path as osp
 import matplotlib.pyplot as plt
