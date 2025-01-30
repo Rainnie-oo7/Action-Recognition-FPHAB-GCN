@@ -38,7 +38,6 @@ def load_all_skeletons(data_root):
 # [(0, [[x, y, z], [x, y, z], ..]]),     (1, [[x, y, z], [x, y, z], ..]]),    (2, [[x, y, z], [x, y, z], ..]])]
 def load_data_from_skeleton_path(paths_dict, labels):
     coordinatesdata = []
-    labelsss = []
 
     for action, paths in paths_dict.items():
         # Holen des label_value für die aktuelle Aktion aus dem Dictionary
@@ -62,16 +61,24 @@ def load_data_from_skeleton_path(paths_dict, labels):
             skmat = np.asarray(skeleton_data[0])
             # Füge die Skelettdaten als Tupel mit dem label_value hinzu
             for coordinates in skmat:
-                coordinatesdata.append( coordinates)  # Liste der Koordinaten hinzufügen
-                labelsss.append( label_value)  # Liste der Labels in Form One hot encoded 1s-Vector hinzufügen
+                coordinatesdata.append((label_value, coordinates))  # Liste der Koordinaten hinzufügen
 
+    return coordinatesdata
 
+def load_coos_from_coordinatesdata(coordinatesdata): #This function extist because I am too dumb to extract coordinates to whole 4551 length from length of coordinatesdata 4551 label-coords tupel
+    coords = [twentyone[1] for twentyone in coordinatesdata]
+    return coords
 
-    return labelsss, coordinatesdata
+def load_labels_from_coordinatesdata1(coordinatesdata):
+    labelsss = [twentyone[0] for twentyone in coordinatesdata for _ in range(21)]  # Labels extrahieren
+    return labelsss
 
+def load_labels_from_coordinatesdata(labelsss): #This function extist because I am too dumb to extract targetinglabels to whole 4551 length from length of coordinatesdata 4551 label-coords tupel
 
+    # Labels in 21er-Gruppen unterteilen
+    labelsss_packed = [np.array(labelsss[i:i + 21]) for i in range(0, len(labelsss), 21)]
 
-
+    return labelsss_packed
 
 # [(1, [x1, y1, z1]), (1, [x2, y2, z2]), (1, [xn, yn, zn]),     (2, [x1, y1, z1]), (2, [x2, y2, z2]), (2, [xn, yn, zn]),    ...,    (m, [x1, y1, z1]), (m, [x2, y2, z2]), (m, [xn, yn, zn])]
 # def load_data_from_skeleton_path(paths_dict, labels):
