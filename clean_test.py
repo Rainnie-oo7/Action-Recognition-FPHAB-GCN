@@ -1,5 +1,5 @@
 import clean_load
-from Mydataset import SkeletonDataset
+from Mydatasetmeins import SkeletonDataset
 import torch
 import os.path as osp
 import matplotlib.pyplot as plt

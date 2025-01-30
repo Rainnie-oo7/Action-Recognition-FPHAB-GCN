@@ -37,7 +37,8 @@ def load_all_skeletons(data_root):
 
 # [(0, [[x, y, z], [x, y, z], ..]]),     (1, [[x, y, z], [x, y, z], ..]]),    (2, [[x, y, z], [x, y, z], ..]])]
 def load_data_from_skeleton_path(paths_dict, labels):
-    action_list_with_labels = []
+    coordinatesdata = []
+    labelsss = []
 
     for action, paths in paths_dict.items():
         # Holen des label_value für die aktuelle Aktion aus dem Dictionary
@@ -61,11 +62,12 @@ def load_data_from_skeleton_path(paths_dict, labels):
             skmat = np.asarray(skeleton_data[0])
             # Füge die Skelettdaten als Tupel mit dem label_value hinzu
             for coordinates in skmat:
-                action_list_with_labels.append((label_value, coordinates))  # Liste der Koordinaten hinzufügen
+                coordinatesdata.append( coordinates)  # Liste der Koordinaten hinzufügen
+                labelsss.append( label_value)  # Liste der Labels in Form One hot encoded 1s-Vector hinzufügen
 
 
 
-    return action_list_with_labels
+    return labelsss, coordinatesdata
 
 
 
