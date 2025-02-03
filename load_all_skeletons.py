@@ -29,10 +29,12 @@ def load_all_skeletons(data_root):
                                     skeleton_txtpath = os.path.join(participiant_path, 'skeleton.txt')
                                     # Appende den Pfad in die Liste der entsprechenden Aktion
                                     skeleton_paths[actiondir].append(skeleton_txtpath)
-
+    print()
     return skeleton_paths, actions
 
-
+#hier muss aktionen als labels
+#wurden die jetzt 0, xyz 1 xyz und so weiter, wenn ja ändern
+#targets nach action anpass
 #hall#
 
 # [(0, [[x, y, z], [x, y, z], ..]]),     (1, [[x, y, z], [x, y, z], ..]]),    (2, [[x, y, z], [x, y, z], ..]])]
